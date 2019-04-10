@@ -2,7 +2,7 @@
     "kind": "Template",
     "apiVersion": "template.openshift.io/v1",
     "metadata": {
-        "name": "datagrid72-postgresql-persistent",
+        "name": "datagrid72-postgresql-persistent-s2i",
         "creationTimestamp": null,
         "annotations": {
             "description": "An example Red Hat JBoss Data Grid application with a PostgreSQL database. For more information about using this template, see https://github.com/jboss-openshift/application-templates.",
@@ -1054,6 +1054,6 @@
         }
     ],
     "labels": {
-        "template": "datagrid72-postgresql-persistent"
+        "template": "datagrid72-postgresql-persistent-s2i"
     }
 }
