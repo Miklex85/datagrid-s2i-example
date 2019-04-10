@@ -229,7 +229,9 @@
                 </distributed-cache-configuration>
                 <distributed-cache-configuration name="spyf-cache-config" mode="SYNC">
                     <compatibility enabled="true"/>
-                    <eviction strategy="LRU" size="10000"/>
+                    <memory>
+                        <object size="10000000"/>
+                    </memory>
                     <expiration lifespan="-1" max-idle="-1" />
                     <string-keyed-jdbc-store 
                         datasource="java:jboss/datasources/postgresql" 
