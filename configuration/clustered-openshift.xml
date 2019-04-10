@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<server 
-    xmlns="urn:jboss:domain:4.0">
+
+<server xmlns="urn:jboss:domain:4.0">
     <extensions>
         <extension module="org.infinispan.extension"/>
         <extension module="org.infinispan.server.endpoint"/>
@@ -53,8 +53,7 @@
             </logger>
         </audit-log>
         <management-interfaces>
-            <http-interface http-upgrade-enabled="true" console-enabled="false">
-                <!-- ##MGMT_IFACE_REALM## -->
+            <http-interface http-upgrade-enabled="true" console-enabled="false"><!-- ##MGMT_IFACE_REALM## -->
                 <socket-binding http="management-http"/>
             </http-interface>
         </management-interfaces>
@@ -69,14 +68,12 @@
         </access-control>
     </management>
     <profile>
-        <subsystem 
-            xmlns="urn:jboss:domain:logging:3.0">
+        <subsystem xmlns="urn:jboss:domain:logging:3.0">
             <console-handler name="CONSOLE">
                 <formatter>
                     <named-formatter name="##CONSOLE-FORMATTER##"/>
                 </formatter>
             </console-handler>
-            <!-- XXX: do these need to be converted to CONSOLE -->
             <periodic-rotating-file-handler name="FILE" autoflush="true">
                 <formatter>
                     <named-formatter name="PATTERN"/>
@@ -87,7 +84,7 @@
             </periodic-rotating-file-handler>
             <size-rotating-file-handler name="HR-ACCESS-FILE" autoflush="true">
                 <formatter>
-                    <pattern-formatter pattern="(%t) %s%e%n"/>
+                    <named-formatter name="ACCESS-LOG"/>
                 </formatter>
                 <file relative-to="jboss.server.log.dir" path="hotrod-access.log"/>
                 <append value="true"/>
@@ -96,7 +93,7 @@
             </size-rotating-file-handler>
             <size-rotating-file-handler name="REST-ACCESS-FILE" autoflush="true">
                 <formatter>
-                    <pattern-formatter pattern="(%t) %s%e%n"/>
+                    <named-formatter name="ACCESS-LOG"/>
                 </formatter>
                 <file relative-to="jboss.server.log.dir" path="rest-access.log"/>
                 <append value="true"/>
@@ -106,26 +103,18 @@
             <logger category="com.arjuna">
                 <level name="WARN"/>
             </logger>
-            <logger category="org.apache.tomcat.util.modeler">
-                <level name="WARN"/>
-            </logger>
             <logger category="org.jboss.as.config">
                 <level name="DEBUG"/>
             </logger>
             <logger category="sun.rmi">
                 <level name="WARN"/>
             </logger>
-            <logger category="jacorb">
-                <level name="WARN"/>
-            </logger>
-            <logger category="jacorb.config">
-                <level name="ERROR"/>
-            </logger>
-            <logger category="org.infinispan.rest.embedded.netty4.i18n">
-                <level name="WARN"/>
-            </logger>
-            <logger category="org.infinispan.rest">
-                <level name="TRACE"/>
+            <logger category="org.infinispan.HOTROD_ACCESS_LOG" use-parent-handlers="false">
+                <!-- Set to TRACE to enable access logging for hot rod or use DMR -->
+                <level name="INFO"/>
+                <handlers>
+                    <handler name="HR-ACCESS-FILE"/>
+                </handlers>
             </logger>
             <!-- ##ACCESS_LOG_HANDLER## -->
             <root-logger>
@@ -147,13 +136,14 @@
             <formatter name="COLOR-PATTERN">
                 <pattern-formatter pattern="%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%E%n"/>
             </formatter>
+            <formatter name="ACCESS-LOG">
+                <pattern-formatter pattern="%X{address} %X{user} [%d{dd/MMM/yyyy:HH:mm:ss z}] &quot;%X{method} %m %X{protocol}&quot; %X{status} %X{requestSize} %X{responseSize} %X{duration}%n"/>
+            </formatter>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:deployment-scanner:2.0">
+        <subsystem xmlns="urn:jboss:domain:deployment-scanner:2.0">
             <deployment-scanner path="deployments" relative-to="jboss.server.base.dir" scan-interval="5000" runtime-failure-causes-rollback="${jboss.deployment.scanner.rollback.on.failure:false}"/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:datasources:4.0">
+        <subsystem xmlns="urn:jboss:domain:datasources:4.0">
             <datasources>
                 <!-- ##DATASOURCES## -->
                 <drivers>
@@ -171,26 +161,62 @@
             </datasources>
         </subsystem>
         <!-- ##INFINISPAN_ENDPOINT## -->
-
-        <subsystem 
-            xmlns="urn:infinispan:server:core:8.4" default-cache-container="clustered">
-            <!-- placeholder changed to not be touch by the image's launch scripts -->
-            <!-- ##_IGNORE_INFINISPAN_CORE## -->
-
-            <!-- @@ START S2I CUSTOM CONFIG @@ -->
-            <!-- NOTE: DO NOT CHANGE THE NAME OF THE 'clustered' cache-container. 
-                 It is referenced by the connectors' endpoint subsystem
-                 auto generated by the original image lauch scripts...
-                 
-                 If you do so you have to remove the '' placholder from this file
-                 and provide your own connectors' enpoint subsystem configuration!
-                  -->
-            <cache-container name="clustered" default-cache="demo">
+        <subsystem xmlns="urn:infinispan:server:core:8.5" default-cache-container="clustered">
+            <cache-container name="clustered" default-cache="contribuyentes">
                 <transport channel="cluster" />
                 <global-state/>
-
-                <!-- cache configurations -->
-                <distributed-cache-configuration name="base_dist_jdbc_cache_config" mode="SYNC">
+                <distributed-cache-configuration name="transactional">
+                    <transaction mode="NON_XA" locking="PESSIMISTIC"/>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="async" mode="ASYNC"/>
+                <replicated-cache-configuration name="replicated"/>
+                <distributed-cache-configuration name="persistent-file-store">
+                    <file-store shared="false" fetch-state="true" passivation="false"/>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="indexed">
+                    <indexing index="LOCAL" auto-config="true"/>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="memory-bounded">
+                    <memory>
+                        <object size="10000"/>
+                    </memory>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="persistent-file-store-passivation">
+                    <memory>
+                        <object size="10000"/>
+                    </memory>
+                    <file-store shared="false" fetch-state="true" passivation="true">
+                        <write-behind modification-queue-size="1024" thread-pool-size="1"/>
+                    </file-store>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="persistent-file-store-write-behind">
+                    <file-store shared="false" fetch-state="true" passivation="false">
+                        <write-behind modification-queue-size="1024" thread-pool-size="1"/>
+                    </file-store>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="persistent-leveldb-store">
+                    <leveldb-store shared="false" fetch-state="true" passivation="false"/>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="persistent-jdbc-string-keyed">
+                    <string-keyed-jdbc-store datasource="java:jboss/datasources/ExampleDS" fetch-state="true" preload="false" purge="false" shared="false" passivation="false">
+                        <string-keyed-table prefix="ISPN">
+                            <id-column name="id" type="VARCHAR"/>
+                            <data-column name="datum" type="BINARY"/>
+                            <timestamp-column name="version" type="BIGINT"/>
+                        </string-keyed-table>
+                        <write-behind modification-queue-size="1024" thread-pool-size="1"/>
+                    </string-keyed-jdbc-store>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="persistent-jdbc-binary-keyed">
+                    <binary-keyed-jdbc-store datasource="java:jboss/datasources/ExampleDS" fetch-state="true" preload="true" purge="false" shared="false" passivation="false">
+                        <binary-keyed-table prefix="ISPN">
+                            <id-column name="id" type="VARCHAR"/>
+                            <data-column name="datum" type="BINARY"/>
+                            <timestamp-column name="version" type="BIGINT"/>
+                        </binary-keyed-table>
+                    </binary-keyed-jdbc-store>
+                </distributed-cache-configuration>
+                <distributed-cache-configuration name="spyf-cache-config" mode="SYNC">
                     <compatibility enabled="true"/>
                     <eviction strategy="LRU" size="10000"/>
                     <expiration lifespan="-1" max-idle="-1" />
@@ -208,15 +234,17 @@
                        <write-behind modification-queue-size="1024" thread-pool-size="1"/>
                     </string-keyed-jdbc-store>
                 </distributed-cache-configuration>
-
-                <distributed-cache name="demo" configuration="base_dist_jdbc_cache_config"/>
-                <distributed-cache name="default_memcached" mode="SYNC"/>
-            </cache-container>            
-            <!-- @@ END   S2I CUSTOM CONFIG @@ -->
-
+                <distributed-cache name="contribuyentes" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="adeudos-vehiculares"></distributed-cache>
+                <distributed-cache name="pagos-vehiculares"></distributed-cache>
+                <distributed-cache name="multas-alcohol"></distributed-cache>
+                <distributed-cache name="pagos-rpp"></distributed-cache>
+                <distributed-cache name="isr"></distributed-cache>
+                <distributed-cache name="bitacora-cargas"></distributed-cache>
+                <distributed-cache name="default_memcached" mode="SYNC"></distributed-cache>
+            </cache-container>
         </subsystem>
-        <subsystem 
-            xmlns="urn:infinispan:server:jgroups:8.0">
+        <subsystem xmlns="urn:infinispan:server:jgroups:8.0">
             <channels default="cluster">
                 <channel name="cluster" stack="tcp"/>
             </channels>
@@ -258,13 +286,11 @@
                 </stack>
             </stacks>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:io:1.1">
+        <subsystem xmlns="urn:jboss:domain:io:1.1">
             <worker name="default"/>
             <buffer-pool name="default"/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:jca:4.0">
+        <subsystem xmlns="urn:jboss:domain:jca:4.0">
             <archive-validation enabled="true" fail-on-error="true" fail-on-warn="false"/>
             <bean-validation enabled="true"/>
             <default-workmanager>
@@ -283,25 +309,20 @@
             </default-workmanager>
             <cached-connection-manager/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:jdr:1.0"/>
-        <subsystem 
-            xmlns="urn:jboss:domain:jmx:1.3">
+        <subsystem xmlns="urn:jboss:domain:jdr:1.0"/>
+        <subsystem xmlns="urn:jboss:domain:jmx:1.3">
             <expose-resolved-model/>
             <expose-expression-model/>
             <remoting-connector/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:naming:2.0">
+        <subsystem xmlns="urn:jboss:domain:naming:2.0">
             <remote-naming/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:remoting:3.0">
+        <subsystem xmlns="urn:jboss:domain:remoting:3.0">
             <endpoint/>
             <http-connector name="http-remoting-connector" connector-ref="default" security-realm="ApplicationRealm"/>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:security:1.2">
+        <subsystem xmlns="urn:jboss:domain:security:1.2">
             <security-domains>
                 <security-domain name="other" cache-type="default">
                     <authentication>
@@ -334,8 +355,7 @@
                 <!-- ##ADDITIONAL_SECURITY_DOMAINS## -->
             </security-domains>
         </subsystem>
-        <subsystem 
-            xmlns="urn:jboss:domain:transactions:3.0">
+        <subsystem xmlns="urn:jboss:domain:transactions:3.0">
             <core-environment node-identifier="${jboss.node.name}">
                 <process-id>
                     <uuid/>
