@@ -248,12 +248,12 @@
                     </string-keyed-jdbc-store>
                 </distributed-cache-configuration>
                 <distributed-cache name="contribuyentes" configuration="spyf-cache-config"></distributed-cache>
-                <distributed-cache name="adeudos-vehiculares"></distributed-cache>
-                <distributed-cache name="pagos-vehiculares"></distributed-cache>
-                <distributed-cache name="multas-alcohol"></distributed-cache>
-                <distributed-cache name="pagos-rpp"></distributed-cache>
-                <distributed-cache name="isr"></distributed-cache>
-                <distributed-cache name="bitacora-cargas"></distributed-cache>
+                <distributed-cache name="adeudos-vehiculares" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="pagos-vehiculares" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="multas-alcohol" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="pagos-rpp" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="isr" configuration="spyf-cache-config"></distributed-cache>
+                <distributed-cache name="bitacora-cargas" configuration="spyf-cache-config"></distributed-cache>
                 <distributed-cache name="default_memcached" mode="SYNC"></distributed-cache>
                 <!-- @@ END   S2I CUSTOM CONFIG @@ -->
             </cache-container>
